@@ -510,27 +510,15 @@ func (clients *clientsContainer) findLocked(id string) (c *Client, ok bool) {
 		}
 	}
 
-	if clients.dhcpServer == nil {
-		return nil, false
+	var macFound net.HardwareAddr
+	if clients.arpdb != nil {
+		macFound = clients.arpdb.FindMACbyIP(ip.AsSlice())
 	}
-
-	macFound := clients.dhcpServer.FindMACbyIP(ip.AsSlice())
-	if macFound == nil {
-		return nil, false
+	if macFound == nil && clients.dhcpServer != nil {
+		macFound = clients.dhcpServer.FindMACbyIP(ip.AsSlice())
 	}
-
-	for _, c = range clients.list {
-		for _, id := range c.IDs {
-			var mac net.HardwareAddr
-			mac, err = net.ParseMAC(id)
-			if err != nil {
-				continue
-			}
-
-			if bytes.Equal(mac, macFound) {
-				return c, true
-			}
-		}
+	if macFound != nil {
+		return clients.findByMAC(macFound)
 	}
 
 	return nil, false
@@ -548,6 +536,25 @@ func (clients *clientsContainer) findRuntimeClient(ip netip.Addr) (rc *RuntimeCl
 	rc, ok = clients.ipToRC[ip]
 
 	return rc, ok
+}
+
+// findByMAC searches for a client by their MAC.  For internal use only.
+// TODO: improve performance
+func (clients *clientsContainer) findByMAC(mac net.HardwareAddr) (c *Client, ok bool) {
+	for _, c = range clients.list {
+		for _, id := range c.IDs {
+			clientMac, err := net.ParseMAC(id)
+			if err != nil {
+				continue
+			}
+
+			if bytes.Equal(clientMac, mac) {
+				return c, true
+			}
+		}
+	}
+
+	return nil, false
 }
 
 // check validates the client.

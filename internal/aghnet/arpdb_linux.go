@@ -115,6 +115,11 @@ func (arp *fsysARPDB) Neighbors() (ns []Neighbor) {
 	return arp.ns.clone()
 }
 
+// FindMACbyIP implements the ARPDB interface for *fsysARPDB.
+func (arp *fsysARPDB) FindMACbyIP(ip net.IP) net.HardwareAddr {
+	return findMACbyIP(arp.ns.ns, ip)
+}
+
 // parseArpAWrt parses the output of the "arp -a -n" command on OpenWrt.  The
 // expected input format:
 //

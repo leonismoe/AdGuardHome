@@ -35,6 +35,11 @@ func (arp *TestARPDB) Neighbors() (ns []Neighbor) {
 	return arp.OnNeighbors()
 }
 
+// FindMACbyIP implements the ARPDB interface for *TestARPDB.
+func (arp *TestARPDB) FindMACbyIP(ip net.IP) net.HardwareAddr {
+	return findMACbyIP(arp.Neighbors(), ip)
+}
+
 func TestARPDBS(t *testing.T) {
 	knownIP := netip.MustParseAddr("1.2.3.4")
 	knownMAC := net.HardwareAddr{0xAB, 0xCD, 0xEF, 0xAB, 0xCD, 0xEF}
@@ -144,6 +149,17 @@ func TestARPDBS(t *testing.T) {
 		require.NoError(t, a.Refresh())
 
 		assert.Empty(t, a.Neighbors())
+	})
+
+	t.Run("findMACbyIP", func(t *testing.T) {
+		a := newARPDBs(succDB)
+		require.NoError(t, a.Refresh())
+
+		mac := a.FindMACbyIP(knownIP.AsSlice())
+		assert.Equal(t, knownMAC, mac)
+
+		mac = a.FindMACbyIP(net.ParseIP("0.0.0.0"))
+		assert.Equal(t, (net.HardwareAddr)(nil), mac)
 	})
 }
 

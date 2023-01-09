@@ -23,6 +23,9 @@ type ARPDB interface {
 	// Neighbors returnes the last set of data reported by ARP.  Both the method
 	// and it's result must be safe for concurrent use.
 	Neighbors() (ns []Neighbor)
+
+	// FindMACbyIP - find a MAC address by IP address in the ARPDB
+	FindMACbyIP(ip net.IP) (mac net.HardwareAddr)
 }
 
 // NewARPDB returns the ARPDB properly initialized for the OS.
@@ -45,6 +48,10 @@ func (EmptyARPDB) Refresh() (err error) { return nil }
 // Neighbors implements the ARPDB interface for EmptyARPContainer.  It always
 // returns nil.
 func (EmptyARPDB) Neighbors() (ns []Neighbor) { return nil }
+
+// FindMACbyIP implements the ARPDB interface for EmptyARPContainer.  It always
+// returns nil.
+func (EmptyARPDB) FindMACbyIP(ip net.IP) net.HardwareAddr { return nil }
 
 // ARPDB Helper Types
 
@@ -155,6 +162,11 @@ func (arp *cmdARPDB) Neighbors() (ns []Neighbor) {
 	return arp.ns.clone()
 }
 
+// FindMACbyIP implements the ARPDB interface for *cmdARPDB.
+func (arp *cmdARPDB) FindMACbyIP(ip net.IP) net.HardwareAddr {
+	return findMACbyIP(arp.ns.ns, ip)
+}
+
 // Composite ARPDB
 
 // arpdbs is the ARPDB that combines several ARPDB implementations and
@@ -209,4 +221,23 @@ func (arp *arpdbs) Refresh() (err error) {
 // TODO(e.burkov):  Think of a way to avoid cloning the slice twice.
 func (arp *arpdbs) Neighbors() (ns []Neighbor) {
 	return arp.clone()
+}
+
+// FindMACbyIP implements the ARPDB interface for *arpdbs.
+func (arp *arpdbs) FindMACbyIP(ip net.IP) net.HardwareAddr {
+	return findMACbyIP(arp.ns, ip)
+}
+
+// FindMACbyIP - find a MAC address by IP address in the ARPDB
+func findMACbyIP(ns []Neighbor, ip net.IP) net.HardwareAddr {
+	addr, ok := netip.AddrFromSlice(ip)
+	if ok {
+		for _, neigh := range ns {
+			if addr == neigh.IP {
+				return neigh.MAC
+			}
+		}
+	}
+
+	return nil
 }
