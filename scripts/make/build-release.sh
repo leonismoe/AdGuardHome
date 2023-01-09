@@ -116,7 +116,8 @@ do
 			# have shasum.
 			log 'replacing sha256sum with shasum -a 256'
 			use_shasum='1'
-		else
+		elif [ "$tool" != 'snapcraft' ] || [ "$snap_enabled" -neq '0' ]
+		then
 			log "pieces don't fit, '$tool' not found"
 
 			exit 1
