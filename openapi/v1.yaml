@@ -4781,6 +4781,8 @@
 
          *  `arp`: The information was collected from the `arp -a` output.
 
+         *  `ndp`: The information was collected from the `ip -6 neigh` output.
+
          *  `dhcp`: The information was collected from our DHCP server.
 
          *  `hosts_file`: The information was collected from the `/etc/hosts`
@@ -4792,6 +4794,7 @@
          *  `whois`: The information was collected by performing a WHOIS lookup.
       'enum':
       - 'arp'
+      - 'ndp'
       - 'dhcp'
       - 'hosts_file'
       - 'rdns'

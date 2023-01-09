@@ -32,13 +32,20 @@ func newARPDB() (arp *arpdbs) {
 	}
 
 	return newARPDBs(
-		// Try /proc/net/arp first.
+		// Try "ip neigh" first.
+		&cmdARPDB{
+			parse: parseIPNeigh,
+			ns:    ns,
+			cmd:   "ip",
+			args:  []string{"neigh"},
+		},
+		// The, try /proc/net/arp.
 		&fsysARPDB{
 			ns:       ns,
 			fsys:     rootDirFS,
 			filename: "proc/net/arp",
 		},
-		// Then, try "arp -a -n".
+		// Finally, try "arp -a -n".
 		&cmdARPDB{
 			parse: parseF,
 			ns:    ns,
@@ -49,13 +56,6 @@ func newARPDB() (arp *arpdbs) {
 			//
 			// See also https://github.com/AdguardTeam/AdGuardHome/issues/3157.
 			args: []string{"-a", "-n"},
-		},
-		// Finally, try "ip neigh".
-		&cmdARPDB{
-			parse: parseIPNeigh,
-			ns:    ns,
-			cmd:   "ip",
-			args:  []string{"neigh"},
 		},
 	)
 }
@@ -219,6 +219,9 @@ func parseArpA(sc *bufio.Scanner, lenHint int) (ns []Neighbor) {
 // expected input format:
 //
 //	192.168.1.1 dev enp0s3 lladdr ab:cd:ef:ab:cd:ef REACHABLE
+//	fe80::dead:beef:0:1 dev enp0s3 FAILED
+//	fe80::dead:beef:1:1 dev enp0s3 lladdr 11:22:33:44:55:66 router STALE
+//	fe80::dead:beef:2:1 dev enp0s3 lladdr ab:cd:ef:ab:cd:ef STALE
 func parseIPNeigh(sc *bufio.Scanner, lenHint int) (ns []Neighbor) {
 	ns = make([]Neighbor, 0, lenHint)
 	for sc.Scan() {

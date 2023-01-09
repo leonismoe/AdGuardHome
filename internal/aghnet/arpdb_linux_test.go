@@ -31,7 +31,10 @@ const ipNeighOutput = `
 1.2.3.4.5 dev enp0s3 lladdr aa:bb:cc:dd:ee:ff DELAY
 1.2.3.4 dev enp0s3 lladdr 12:34:56:78:910 DELAY
 192.168.1.2 dev enp0s3 lladdr ab:cd:ef:ab:cd:ef DELAY
-::ffff:ffff dev enp0s3 lladdr ef:cd:ab:ef:cd:ab router STALE`
+::ffff:ffff dev enp0s3 lladdr ef:cd:ab:ef:cd:ab router STALE
+fe80::dead:beef:0:1 dev enp0s3 FAILED
+fe80::dead:beef:1:1 dev enp0s3 lladdr 11:22:33:44:55:66 router STALE
+fe80::dead:beef:2:1 dev enp0s3 lladdr ab:cd:ef:ab:cd:ef STALE`
 
 var wantNeighs = []Neighbor{{
 	IP:  netip.MustParseAddr("192.168.1.2"),
@@ -39,6 +42,14 @@ var wantNeighs = []Neighbor{{
 }, {
 	IP:  netip.MustParseAddr("::ffff:ffff"),
 	MAC: net.HardwareAddr{0xEF, 0xCD, 0xAB, 0xEF, 0xCD, 0xAB},
+}}
+
+var wantIP6Neighs = []Neighbor{{
+	IP:  netip.MustParseAddr("fe80::dead:beef:1:1"),
+	MAC: net.HardwareAddr{0x11, 0x22, 0x33, 0x44, 0x55, 0x66},
+}, {
+	IP:  netip.MustParseAddr("fe80::dead:beef:2:1"),
+	MAC: net.HardwareAddr{0xAB, 0xCD, 0xEF, 0xAB, 0xCD, 0xEF},
 }}
 
 func TestFSysARPDB(t *testing.T) {
@@ -97,6 +108,7 @@ func TestCmdARPDB_linux(t *testing.T) {
 		err := a.Refresh()
 		require.NoError(t, err)
 
-		assert.Equal(t, wantNeighs, a.Neighbors())
+		wantIPNeighs := append(wantNeighs, wantIP6Neighs...)
+		assert.ElementsMatch(t, wantIPNeighs, a.Neighbors())
 	})
 }

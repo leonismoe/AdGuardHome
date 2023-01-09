@@ -72,6 +72,7 @@ const (
 	ClientSourceNone clientSource = iota
 	ClientSourceWHOIS
 	ClientSourceARP
+	ClientSourceNDP
 	ClientSourceRDNS
 	ClientSourceDHCP
 	ClientSourceHostsFile
@@ -88,6 +89,8 @@ func (cs clientSource) String() (s string) {
 		return "WHOIS"
 	case ClientSourceARP:
 		return "ARP"
+	case ClientSourceNDP:
+		return "NDP"
 	case ClientSourceRDNS:
 		return "rDNS"
 	case ClientSourceDHCP:
@@ -872,10 +875,15 @@ func (clients *clientsContainer) addFromSystemARP() {
 	defer clients.lock.Unlock()
 
 	clients.rmHostsBySrc(ClientSourceARP)
+	clients.rmHostsBySrc(ClientSourceNDP)
 
 	added := 0
 	for _, n := range ns {
-		if clients.addHostLocked(n.IP, n.Name, ClientSourceARP) {
+		source := ClientSourceARP
+		if n.IP.Is6() {
+			source = ClientSourceNDP
+		}
+		if clients.addHostLocked(n.IP, n.Name, source) {
 			added++
 		}
 	}
